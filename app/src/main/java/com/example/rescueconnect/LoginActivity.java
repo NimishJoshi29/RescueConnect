@@ -17,6 +17,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -25,6 +26,7 @@ public class LoginActivity extends AppCompatActivity {
     Button loginButton;
     TextView signUpButton;
     FirebaseAuth firebaseAuth;
+    private LoadingAlertDialog loadingAlertDialog;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,6 +35,7 @@ public class LoginActivity extends AppCompatActivity {
         passwordText = findViewById(R.id.loginPassword);
         loginButton = findViewById(R.id.signInButton);
         signUpButton = findViewById(R.id.signUpText);
+        loadingAlertDialog = new LoadingAlertDialog(this,"Logging in...");
 
         loginButton.setOnClickListener(v -> {
             String email = emailText.getText().toString();
@@ -46,6 +49,7 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
             firebaseAuth = FirebaseAuth.getInstance();
+            loadingAlertDialog.startLoading();
             firebaseAuth.signInWithEmailAndPassword(email,password).addOnCompleteListener(LoginActivity.this, task -> {
                 if(task.isSuccessful()){
                     Toast.makeText(LoginActivity.this,"Login Successful",Toast.LENGTH_LONG).show();
@@ -57,6 +61,7 @@ public class LoginActivity extends AppCompatActivity {
                     emailText.setText("");
                     passwordText.setText("");
                     emailText.requestFocus();
+                    loadingAlertDialog.stopLoading();
                     Toast.makeText(LoginActivity.this,"Wrong Credentials",Toast.LENGTH_LONG).show();
                 }
             });

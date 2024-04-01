@@ -24,6 +24,7 @@ public class RegistrationActivity extends AppCompatActivity {
     TextView signInButton;
 
     FirebaseAuth firebaseAuth=FirebaseAuth.getInstance();
+    private LoadingAlertDialog loadingAlertDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -36,6 +37,7 @@ public class RegistrationActivity extends AppCompatActivity {
         password = findViewById(R.id.registerPassword);
         signUpButton = findViewById(R.id.signUpButton);
         signInButton = findViewById(R.id.signInText);
+        loadingAlertDialog = new LoadingAlertDialog(this,"");
 
         signUpButton.setOnClickListener(v -> {
             if(firstName.getText().toString().isEmpty()){
@@ -57,7 +59,7 @@ public class RegistrationActivity extends AppCompatActivity {
                 email.setError("Enter valid email");
                 return;
             }
-
+            loadingAlertDialog.startLoading();
             firebaseAuth.createUserWithEmailAndPassword(email.getText().toString(),password.getText().toString()).addOnCompleteListener(RegistrationActivity.this, task -> {
                 if(task.isSuccessful()){
                     FirebaseUser user = firebaseAuth.getCurrentUser();
@@ -71,8 +73,10 @@ public class RegistrationActivity extends AppCompatActivity {
                     startActivity(new Intent(RegistrationActivity.this, LoginActivity.class));
                     RegistrationActivity.this.finish();
                 }
-                else
+                else {
+                    loadingAlertDialog.stopLoading();
                     Toast.makeText(RegistrationActivity.this, "Something went wrong!", Toast.LENGTH_LONG).show();
+                }
             });
         });
 

@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "676191024464",
-    "project_id": "rescueconnect-1df7f",
-    "storage_bucket": "rescueconnect-1df7f.appspot.com"
+    "project_number": "665228038320",
+    "project_id": "rescueconnect-565fb",
+    "storage_bucket": "rescueconnect-565fb.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:676191024464:android:0ba98f6d5496a5cc902855",
-        "android_client_info": {
-          "package_name": "com.example.google_api_test"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBUST-a6pBh7WynM7yfZuBkp2nzElPQTyI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:676191024464:android:fa5a998d3dcce778902855",
+        "mobilesdk_app_id": "1:665228038320:android:26a517345b76783968ab75",
         "android_client_info": {
           "package_name": "com.example.rescueconnect"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBUST-a6pBh7WynM7yfZuBkp2nzElPQTyI"
+          "current_key": "AIzaSyA5BguERQJ5EYwniPMsGtqyEC7Wr6pCPCg"
         }
       ],
       "services": {

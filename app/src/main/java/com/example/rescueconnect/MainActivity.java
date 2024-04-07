@@ -182,6 +182,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+
+        ((MaterialButton)(findViewById(R.id.querybutton))).setOnClickListener(v -> {
+            Intent i = new Intent(MainActivity.this, QueryResult.class);
+            startActivity(i);
+        });
     }
 
     private void createNotificationChannel() {
@@ -234,4 +239,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
         googleMap.moveCamera(CameraUpdateFactory.zoomTo(16));
     }
+
+
 }

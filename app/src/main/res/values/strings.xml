@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">RescueConnect</string>
-    <string name="username_hint_text">Username</string>
-    <string name="password_hint_text">Password</string>
     <string name="login_button_text">
         SIGN IN
     </string>

@@ -9,4 +9,5 @@
     <string name="signin_text">
         <u>Sign In</u>
     </string>
+    <string name="alerts">Alerts</string>
 </resources>

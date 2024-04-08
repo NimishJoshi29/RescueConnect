@@ -58,11 +58,6 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
-// https://mvnrepository.com/artifact/mysql/mysql-connector-java
-    implementation("mysql:mysql-connector-java:8.0.33")
-    configurations.implementation{
-        exclude("com.google.protobuf","protobuf-java")
-    }
 
 }
 

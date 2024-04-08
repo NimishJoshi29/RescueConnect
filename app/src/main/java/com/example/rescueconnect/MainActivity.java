@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -16,10 +17,10 @@ import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,15 +32,26 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private static final int TYPES_OF_AGENCIES = 4;
@@ -80,9 +92,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d("Nimish", "I did nothing.");
     }
 
+    @SuppressLint("ResourceType")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        Objects.requireNonNull(getSupportActionBar()).hide();
         createNotificationChannel();
         Resources resources = getResources();
         Drawable tickIcon;
@@ -94,14 +109,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             throw new RuntimeException(e);
         }
 
-
         firebaseAuth = FirebaseAuth.getInstance();
         if ((user = firebaseAuth.getCurrentUser()) == null) {
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             MainActivity.this.finish();
         }
 
+        AtomicReference<String> token = new AtomicReference<>();
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if(task.isSuccessful())
+                token.set(task.getResult());
+        });
 
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("tokens").get().addOnCompleteListener(task -> {
+            if(task.isSuccessful()){
+                for(DocumentSnapshot d : task.getResult().getDocuments()){
+                    if(d.get("token").equals(token.get()))
+                        return;
+                }
+                Map<String,String> tokenMap = new HashMap<>();
+                tokenMap.put("token",token.get());
+                db.collection("tokens").add(tokenMap);
+            }
+        });
         requestLocation();
         requestNotificationPermission();
 
@@ -184,8 +215,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         ((MaterialButton)(findViewById(R.id.querybutton))).setOnClickListener(v -> {
-            Intent i = new Intent(MainActivity.this, QueryResult.class);
+            Intent i = new Intent(MainActivity.this, NotificationHistory.class);
             startActivity(i);
+        });
+
+        ((MaterialToolbar)findViewById(R.id.toolbar)).setOnMenuItemClickListener(item -> {
+            if(item.getItemId()==R.id.alerts_button) {
+                Intent i = new Intent(MainActivity.this, NotificationHistory.class);
+                startActivity(i);
+                return true;
+            }
+            return false;
         });
     }
 

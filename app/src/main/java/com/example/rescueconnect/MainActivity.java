@@ -15,6 +15,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -102,131 +104,122 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Resources resources = getResources();
         Drawable tickIcon;
         try {
-            tickIcon = Drawable.createFromXml(resources,resources.getXml(R.drawable.done));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (XmlPullParserException e) {
+            tickIcon = Drawable.createFromXml(resources, resources.getXml(R.drawable.done));
+        } catch (IOException | XmlPullParserException e) {
             throw new RuntimeException(e);
         }
 
         firebaseAuth = FirebaseAuth.getInstance();
-        if ((user = firebaseAuth.getCurrentUser()) == null) {
+        user = firebaseAuth.getCurrentUser();
+        if (user == null) {
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             MainActivity.this.finish();
-        }
+        } else {
 
-        AtomicReference<String> token = new AtomicReference<>();
-        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
-            if(task.isSuccessful())
-                token.set(task.getResult());
-        });
+            AtomicReference<String> token = new AtomicReference<>();
+            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+                if (task.isSuccessful())
+                    token.set(task.getResult());
+            });
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("tokens").get().addOnCompleteListener(task -> {
-            if(task.isSuccessful()){
-                for(DocumentSnapshot d : task.getResult().getDocuments()){
-                    if(d.get("token").equals(token.get()))
-                        return;
+
+            FirebaseMessaging.getInstance().unsubscribeFromTopic("test");
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.collection("tokens").get().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    for (DocumentSnapshot d : task.getResult().getDocuments()) {
+                        if (Objects.equals(d.get("token"), token.get()))
+                            return;
+                    }
+                    Map<String, String> tokenMap = new HashMap<>();
+                    tokenMap.put("token", token.get());
+                    db.collection("tokens").add(tokenMap);
                 }
-                Map<String,String> tokenMap = new HashMap<>();
-                tokenMap.put("token",token.get());
-                db.collection("tokens").add(tokenMap);
-            }
-        });
-        requestLocation();
-        requestNotificationPermission();
-
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            });
             requestLocation();
-        }
+            requestNotificationPermission();
 
-
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (!locationManager.isLocationEnabled()) {
-            Toast.makeText(this,"Please enable location services",Toast.LENGTH_LONG).show();
-            this.finish();
-        }
-
-
-        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
-            @Override
-            public void onSuccess(Location location) {
-                currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-                assert mapFragment != null;
-                mapFragment.getMapAsync(MainActivity.this);
-                ((TextView) findViewById(R.id.usernameview)).setText("Hello " + user.getDisplayName() + "!");
+            fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestLocation();
             }
-        });
 
-        setContentView(R.layout.activity_main);
 
-        ((MaterialButton)(findViewById(R.id.hospitalButton))).addOnCheckedChangeListener(new MaterialButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(MaterialButton button, boolean isChecked) {
-                searchFor[0] = !searchFor[0];
-                if(isChecked){
-                    button.setIcon(tickIcon);
+            LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (!locationManager.isLocationEnabled()) {
+                Toast.makeText(this, "Please enable location services", Toast.LENGTH_LONG).show();
+                this.finish();
+            }
+
+
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+                    assert mapFragment != null;
+                    mapFragment.getMapAsync(MainActivity.this);
+
+                    try {
+                        String locality = new Geocoder(MainActivity.this).getFromLocation(currentLocation.latitude, currentLocation.longitude, 5).get(0).getSubLocality();
+                        String temp = ((TextView) findViewById(R.id.locality)).getText().toString();
+                        ((TextView) findViewById(R.id.locality)).setText(String.format("%s%s", temp, locality));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-                else{
+            });
+
+            setContentView(R.layout.activity_main);
+
+
+            ((MaterialButton) (findViewById(R.id.hospitalButton))).addOnCheckedChangeListener((button, isChecked) -> {
+                searchFor[0] = !searchFor[0];
+                if (isChecked) {
+                    button.setIcon(tickIcon);
+                } else {
                     button.setIcon(null);
                 }
-            }
-        });
-        ((MaterialButton)(findViewById(R.id.fireButton))).addOnCheckedChangeListener(new MaterialButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(MaterialButton button, boolean isChecked) {
+            });
+            ((MaterialButton) (findViewById(R.id.fireButton))).addOnCheckedChangeListener((button, isChecked) -> {
                 searchFor[1] = !searchFor[1];
 
-                if(isChecked){
+                if (isChecked) {
                     button.setIcon(tickIcon);
-                }
-                else{
+                } else {
                     button.setIcon(null);
                 }
-            }
-        });
-        ((MaterialButton)(findViewById(R.id.waterButton))).addOnCheckedChangeListener(new MaterialButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(MaterialButton button, boolean isChecked) {
+            });
+            ((MaterialButton) (findViewById(R.id.waterButton))).addOnCheckedChangeListener((button, isChecked) -> {
                 searchFor[2] = !searchFor[2];
 
-                if(isChecked){
+                if (isChecked) {
                     button.setIcon(tickIcon);
-                }
-                else{
+                } else {
                     button.setIcon(null);
                 }
-            }
-        });
-        ((MaterialButton)(findViewById(R.id.animalButton))).addOnCheckedChangeListener(new MaterialButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(MaterialButton button, boolean isChecked) {
+            });
+            ((MaterialButton) (findViewById(R.id.animalButton))).addOnCheckedChangeListener((button, isChecked) -> {
                 searchFor[3] = !searchFor[3];
 
-                if(isChecked){
+                if (isChecked) {
                     button.setIcon(tickIcon);
-                }
-                else{
+                } else {
                     button.setIcon(null);
                 }
-            }
-        });
+            });
 
-        ((MaterialButton)(findViewById(R.id.querybutton))).setOnClickListener(v -> {
-            Intent i = new Intent(MainActivity.this, NotificationHistory.class);
-            startActivity(i);
-        });
+            ((MaterialToolbar) findViewById(R.id.toolbar)).setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.alerts_button) {
+                    Intent i = new Intent(MainActivity.this, NotificationHistory.class);
+                    startActivity(i);
+                    return true;
+                }
+                return false;
+            });
 
-        ((MaterialToolbar)findViewById(R.id.toolbar)).setOnMenuItemClickListener(item -> {
-            if(item.getItemId()==R.id.alerts_button) {
-                Intent i = new Intent(MainActivity.this, NotificationHistory.class);
-                startActivity(i);
-                return true;
-            }
-            return false;
-        });
+            ((TextView) findViewById(R.id.usernameview)).setText(String.format("Hello %s!", user.getDisplayName()));
+        }
     }
 
     private void createNotificationChannel() {

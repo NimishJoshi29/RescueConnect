@@ -1,45 +1,58 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<com.google.android.material.card.MaterialCardView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/alert_card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    style="@style/Widget.Material3.CardView.Filled"
-    android:elevation="100dp"
-    android:layout_marginHorizontal="15dp"
-    android:layout_marginTop="10dp">
-    <LinearLayout
+    android:orientation="vertical">
+
+    <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/alert_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
-        <TextView
-            android:id="@+id/alert_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Rajvardhan Rescue Agency"
-            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-            android:layout_marginBottom="5dp">
-        </TextView>
-
-        <TextView
-            android:id="@+id/alert_body"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Building in Sambhaji Nagar Area recently caught on fire. Please beware of inflammable things in your house and maintain proper safety around them."
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            android:textColor="?android:attr/textColorSecondary">
-        </TextView>
-
-        <TextView
-            android:id="@+id/alert_timestamp"
+        style="@style/Widget.Material3.CardView.Filled"
+        android:elevation="100dp"
+        android:layout_marginHorizontal="15dp"
+        android:layout_marginTop="10dp"
+        android:clickable="true">
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAlignment="viewEnd"
-            android:text="Sunday, 7 April 2024, 11:35 AM"
-            android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-            android:layout_marginTop="10dp">
-        </TextView>
-    </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+            android:orientation="vertical"
+            android:padding="15dp">
+            <TextView
+                android:id="@+id/alert_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Alert Title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                android:layout_marginBottom="5dp">
+            </TextView>
+
+            <TextView
+                android:id="@+id/alert_body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Alert Body"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?android:attr/textColorSecondary">
+            </TextView>
+
+            <TextView
+                android:id="@+id/alert_timestamp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="viewEnd"
+                android:text="Alert TimeStamp"
+                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:layout_marginTop="10dp">
+            </TextView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <Space
+        android:layout_width="wrap_content"
+        android:layout_height="10dp">
+    </Space>
+</LinearLayout>

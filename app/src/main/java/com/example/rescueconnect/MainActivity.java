@@ -259,7 +259,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Log.e("FirebaseData", "Error fetching data", databaseError.toException());
 
                         }
-
                     });
 
                 } else {
@@ -276,6 +275,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     googleMapVar.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
                     googleMapVar.moveCamera(CameraUpdateFactory.zoomTo(16));
 
+                    for (Marker marker : hospitalMarkers.values()) {
+                        marker.remove();
+                    }
+                    // Clear the hospitalMarkers HashMap
                     hospitalMarkers.clear();
                 }
             });

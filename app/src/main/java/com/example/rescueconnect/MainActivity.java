@@ -33,8 +33,10 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -42,6 +44,11 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -67,6 +74,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     private LatLng currentLocation = new LatLng(0,0);
+
+
+
+    ////////////////////////////////////////////////////
+    //  modifications on 29-04-2024                   //
+    ////////////////////////////////////////////////////
+
+    // DatabaseReference for Firebase Realtime Database
+    private DatabaseReference databaseReference;
+
+    // HashMap to store markers for hospitals
+    private HashMap<String, Marker> hospitalMarkers = new HashMap<>();
+
+    private GoogleMap googleMapVar; // Define the GoogleMap object
+
+
+
 
     private void requestLocation() {
         if (ActivityCompat.checkSelfPermission(this, LOCATION_PERMISSION) == PackageManager.PERMISSION_GRANTED) {
@@ -109,6 +133,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             throw new RuntimeException(e);
         }
 
+        /////////////////////////////////////////////////////////////
+        // Initialize Firebase Realtime Database reference
+        //databaseReference = FirebaseDatabase.getInstance().getReference().child("hospital1");
+        //////////////////////////////////////////////////////////
+
+
+
         firebaseAuth = FirebaseAuth.getInstance();
         user = firebaseAuth.getCurrentUser();
         if (user == null) {
@@ -135,6 +166,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     tokenMap.put("token", token.get());
                     db.collection("tokens").add(tokenMap);
                 }
+                else{
+                    Log.d("Nimish","DATabase unreachable");
+                }
             });
             requestLocation();
             requestNotificationPermission();
@@ -155,32 +189,119 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
                 @Override
                 public void onSuccess(Location location) {
-                    currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-                    assert mapFragment != null;
-                    mapFragment.getMapAsync(MainActivity.this);
+                    if (location != null) {
+                        currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+                        // Further operations with mapFragment
+                        assert mapFragment != null;
+                        mapFragment.getMapAsync(MainActivity.this);
 
-                    try {
-                        String locality = new Geocoder(MainActivity.this).getFromLocation(currentLocation.latitude, currentLocation.longitude, 5).get(0).getSubLocality();
-                        String temp = ((TextView) findViewById(R.id.locality)).getText().toString();
-                        ((TextView) findViewById(R.id.locality)).setText(String.format("%s%s", temp, locality));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        try {
+                            String locality = new Geocoder(MainActivity.this).getFromLocation(currentLocation.latitude, currentLocation.longitude, 5).get(0).getSubLocality();
+                            String temp = ((TextView) findViewById(R.id.locality)).getText().toString();
+                            ((TextView) findViewById(R.id.locality)).setText(String.format("%s%s", temp, locality));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        // Handle the case where location is null, maybe show an error message or retry obtaining the location
                     }
+
                 }
             });
 
             setContentView(R.layout.activity_main);
 
 
-            ((MaterialButton) (findViewById(R.id.hospitalButton))).addOnCheckedChangeListener((button, isChecked) -> {
-                searchFor[0] = !searchFor[0];
+//            ((MaterialButton) (findViewById(R.id.hospitalButton))).addOnCheckedChangeListener((button, isChecked) -> {
+//                searchFor[0] = !searchFor[0];
+//                if (isChecked) {
+//                    button.setIcon(tickIcon);
+//                } else {
+//                    button.setIcon(null);
+//                }
+//            });
+
+            ((MaterialButton) findViewById(R.id.hospitalButton)).addOnCheckedChangeListener((button, isChecked) -> {
+                searchFor[0] = isChecked;
+
                 if (isChecked) {
                     button.setIcon(tickIcon);
+
+
+                    DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference().child("hospitals");
+
+                    databaseReference.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
+                                String hospitalName = hospitalSnapshot.child("name").getValue(String.class);
+                                double latitude = hospitalSnapshot.child("latitude").getValue(Double.class);
+                                double longitude = hospitalSnapshot.child("longitude").getValue(Double.class);
+
+                                Log.d("FirebaseData", "Hospital Name: " + hospitalName);
+                                Log.d("FirebaseData", "Latitude: " + latitude);
+                                Log.d("FirebaseData", "Longitude: " + longitude);
+
+                                // Add hospital marker to the map
+                                Marker marker = googleMapVar.addMarker(new MarkerOptions()
+                                        .position(new LatLng(latitude, longitude))
+                                        .title(hospitalName));
+                                hospitalMarkers.put(dataSnapshot.getKey(), marker);
+                                googleMapVar.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
+                                googleMapVar.moveCamera(CameraUpdateFactory.zoomTo(16));
+
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            Log.e("FirebaseData", "Error fetching data", databaseError.toException());
+
+                        }
+
+                    });
+
                 } else {
                     button.setIcon(null);
+                    // Clear hospital markers from the map
+                    // not working. Used clear() method instead
+//                    for (Marker marker : hospitalMarkers.values()) {
+//                        marker.remove();
+//                    }
+                    // Clear the hospitalMarkers HashMap
+                    googleMapVar.clear();
+                    //Focus camera back to user's current location
+                    googleMapVar.addMarker(new MarkerOptions().position(currentLocation).title("Your location"));
+                    googleMapVar.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
+                    googleMapVar.moveCamera(CameraUpdateFactory.zoomTo(16));
+
+                    hospitalMarkers.clear();
                 }
             });
+
+
+
+
+
+
+
+            // Find the report button by its ID
+            MaterialButton reportButton = findViewById(R.id.reportButton);
+
+            // Set a click listener for the report button
+            reportButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Call a method to handle the report action
+                    handleReport();
+                }
+            });
+
+
+            ///////////////////////////////////////////
+
+
             ((MaterialButton) (findViewById(R.id.fireButton))).addOnCheckedChangeListener((button, isChecked) -> {
                 searchFor[1] = !searchFor[1];
 
@@ -271,7 +392,108 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         googleMap.addMarker(new MarkerOptions().position(currentLocation).title("Your location"));
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
         googleMap.moveCamera(CameraUpdateFactory.zoomTo(16));
+
+        googleMapVar = googleMap;
     }
+
+
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////
+
+    private void handleReport() {
+        // Get the current location
+        double latitude = currentLocation.latitude;
+        double longitude = currentLocation.longitude;
+
+        // Create an array of options for the user to choose from
+        final String[] reportOptions = {"Fire", "Water", "Animal", "Accident", "Other"};
+
+        // Create an AlertDialog with the list of options
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Select report type");
+        builder.setItems(reportOptions, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String reportType = reportOptions[which];
+                addReportToDatabase(latitude, longitude, reportType);
+            }
+        });
+        builder.show();
+    }
+
+    private void addReportToDatabase(double latitude, double longitude, String reportType) {
+        // Get a reference to the "reports" child in the database
+        DatabaseReference reportsRef = FirebaseDatabase.getInstance().getReference().child("reports");
+
+        // Create a new entry for the report
+        String reportId = reportsRef.push().getKey();
+        Map<String, Object> reportData = new HashMap<>();
+        reportData.put("latitude", latitude);
+        reportData.put("longitude", longitude);
+        reportData.put("type", reportType);
+
+        // Add the new report to the database
+        reportsRef.child(reportId).setValue(reportData)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        // Report added successfully
+                        Toast.makeText(MainActivity.this, "Report added successfully!", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // Failed to add report
+                        Toast.makeText(MainActivity.this, "Failed to add report!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void handleReportTest() {
+        // Get the current location
+        double latitude = currentLocation.latitude;
+        double longitude = currentLocation.longitude;
+
+        // You can set the type of report based on your application logic
+        String reportType = "Type of Report";
+
+        // Get a reference to the "reports" child in the database
+        DatabaseReference reportsRef = FirebaseDatabase.getInstance().getReference().child("reports");
+
+        // Create a new entry for the report
+        String reportId = reportsRef.push().getKey();
+        Map<String, Object> reportData = new HashMap<>();
+        reportData.put("latitude", latitude);
+        reportData.put("longitude", longitude);
+        reportData.put("type", reportType);
+
+        // Add the new report to the database
+        reportsRef.child(reportId).setValue(reportData)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        // Report added successfully
+                        Toast.makeText(MainActivity.this, "Report added successfully!", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // Failed to add report
+                        Toast.makeText(MainActivity.this, "Failed to add report!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+
+    //////////////////////////////////////////////////////////////
 
 
 }

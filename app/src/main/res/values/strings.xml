@@ -10,4 +10,7 @@
         <u>Sign In</u>
     </string>
     <string name="alerts">Alerts</string>
+    <string name="user_name">Nimish Joshi</string>
+    <string name="email_address">joshinim29@gmail.com</string>
+    <string name="profile_image">Profile Image</string>
 </resources>

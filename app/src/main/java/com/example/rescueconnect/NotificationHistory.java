@@ -3,20 +3,30 @@ package com.example.rescueconnect;
 import android.graphics.Canvas;
 import android.os.Bundle;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.NestedScrollView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class NotificationHistory extends AppCompatActivity {
 
@@ -54,6 +64,24 @@ public class NotificationHistory extends AppCompatActivity {
 
                     notificationsLayout.addView(notificationCardLayout.get());
                 }
+                MaterialButton materialButton = new MaterialButton(this);
+                materialButton.setText("Send Notification");
+                materialButton.setOnClickListener(v -> {
+                    NotificationPusher pusher = new NotificationPusher("Tapowan");
+                    Thread t = new Thread(pusher);
+                    t.start();
+                    try {
+                        t.join();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    if(pusher.isSuccessful()){
+                        Toast.makeText(this,"Notification Sent.",Toast.LENGTH_SHORT).show();
+                    }
+                    else
+                        Toast.makeText(this,"Error.",Toast.LENGTH_SHORT).show();
+                });
+                notificationsLayout.addView(materialButton);
             }
         });
 
